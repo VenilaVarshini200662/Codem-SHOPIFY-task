@@ -614,7 +614,7 @@ export async function action({ request }){
   if(siblingsWereLoaded){
     try{
       originalSiblingProducts = JSON.parse(formData.get("original_siblingProducts") || "[]");
-      if(!Array.isArray(originalSiblingProducts)) originalSiblingProducts = []; // checked to avoid other formats
+      if(!Array.isArray(originalSiblingProducts)) originalSiblingProducts = []; 
     } catch{ originalSiblingProducts = []; }
 
     try{
