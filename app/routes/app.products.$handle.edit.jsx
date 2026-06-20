@@ -122,18 +122,18 @@ const ERROR_MESSAGES = {
   E09: (sku) => `SKU "${sku}" is already used by another product.`,
 };
 
-function processTags(tagsArray) {
-  if (!tagsArray || tagsArray.length === 0) return [];
+function processTags(tagsArray){
+  if(!tagsArray || tagsArray.length === 0) return [];
   return [...new Set(tagsArray.map((tag) => tag.trim().toLowerCase()).filter((tag) => tag.length > 0))];
 }
 
 function parseSiblingHandles(metafieldValue){
-  if (!metafieldValue || typeof metafieldValue !== "string") return [];
+  if(!metafieldValue || typeof metafieldValue !== "string") return [];
   return metafieldValue.split(",").map((h) => h.trim()).filter((h) => h.length > 0);
 }
 
 function formatMetafieldValueForSave(siblingHandles){
-  if (!siblingHandles || siblingHandles.length === 0) return "";
+  if(!siblingHandles || siblingHandles.length === 0) return "";
   return siblingHandles.join(", ");
 }
 
@@ -143,10 +143,10 @@ function computeIsDirty(originalData, currentData){
   return originalStr !== currentStr;
 }
 
-function computeDiff(originalBasicInfo,currentBasicInfo,originalSku,currentSku,originalSiblingProducts,currentSiblingProducts) {
+function computeDiff(originalBasicInfo,currentBasicInfo,originalSku,currentSku,originalSiblingProducts,currentSiblingProducts){
   const changes = {coreFieldsChanged: false,skuChanged: false,siblingsChanged: false,};
   if(originalBasicInfo.title !== currentBasicInfo.title ||originalBasicInfo.vendor !== currentBasicInfo.vendor ||originalBasicInfo.productType !== currentBasicInfo.productType 
-    ||originalBasicInfo.description !== currentBasicInfo.description ||originalBasicInfo.status !== currentBasicInfo.status) {
+    ||originalBasicInfo.description !== currentBasicInfo.description ||originalBasicInfo.status !== currentBasicInfo.status){
     changes.coreFieldsChanged = true;
   }
   const origTagsSorted = [...originalBasicInfo.tags].sort();
@@ -159,17 +159,16 @@ function computeDiff(originalBasicInfo,currentBasicInfo,originalSku,currentSku,o
   }
   const origSibsSorted = [...originalSiblingProducts].sort();
   const currSibsSorted = [...currentSiblingProducts].sort();
-  if (JSON.stringify(origSibsSorted) !== JSON.stringify(currSibsSorted)) {
+  if(JSON.stringify(origSibsSorted) !== JSON.stringify(currSibsSorted)) {
     changes.siblingsChanged = true;
   }
   return changes;
 }
 
-export { parseSiblingHandles,  processTags, formatMetafieldValueForSave, computeDiff,computeIsDirty,ERROR_MESSAGES};
+export { parseSiblingHandles, processTags, formatMetafieldValueForSave, computeDiff,computeIsDirty,ERROR_MESSAGES};
 
-// Shared Layout Component (Reusable across all groups)
 function EditPageLayout({ title, isDirty, isSubmitting, onDiscard, onSave, children,showSuccessBanner,successMessage,showErrorBanner,
-  errorMessage,showNoChangesBanner,showWarningBanner,warningMessage,actionDataNoOp}) {
+  errorMessage,showNoChangesBanner,showWarningBanner,warningMessage,actionDataNoOp}){
   return (
     <div className="page">
       <div className="header">
@@ -211,6 +210,7 @@ function EditPageLayout({ title, isDirty, isSubmitting, onDiscard, onSave, child
     </div>
   );
 }
+
 EditPageLayout.propTypes = {
   title: PropTypes.string.isRequired,
   isDirty: PropTypes.bool.isRequired,
@@ -239,7 +239,8 @@ const ACTIONS = {
   RESET_SIBLINGS: 'RESET_SIBLINGS',
   UPDATE_ORIGINAL_BASIC: 'UPDATE_ORIGINAL_BASIC'
 };
-function getInitialState(product) {
+
+function getInitialState(product){
   const initialState = {
     basicInfo: {
       title: product.basicInfo.title,
@@ -279,7 +280,7 @@ function getInitialState(product) {
 }
 
 function formReducer(state, action){
-  switch (action.type){
+  switch(action.type){
     case ACTIONS.SET_BASIC_FIELD: {
       const newBasicInfo = { ...state.basicInfo, [action.field]: action.value };
       const combinedCurrent = {
@@ -425,7 +426,7 @@ function formReducer(state, action){
   }
 }
 
-function Tabs({ activeTab, onTabChange, isDirty, siblingCount }) {
+function Tabs({ activeTab, onTabChange, isDirty, siblingCount }){
   return (
     <div className="tabs" role="tablist">
       <button role="tab" aria-selected={activeTab === "basic"} className={activeTab === "basic" ? "tab active" : "tab"} 
@@ -449,6 +450,7 @@ Tabs.propTypes = {
   isDirty: PropTypes.bool.isRequired,
   siblingCount: PropTypes.number.isRequired,
 };
+
 export async function loader({ request, params }){
   const handle = params.handle;
   if(!handle){
@@ -500,17 +502,16 @@ async function loadSiblingsLazy(admin, handle){
       variables: { handle: `handle:${handle}` },
     });
     const metaJson = await metaResp.json();
-
     if(metaJson.errors){
       console.error("GraphQL errors:", metaJson.errors);
       return { siblingProducts: [], siblingDetails: [], partialFailure: false, loadError: true };
     }
     const productNode = metaJson?.data?.products?.nodes?.[0];
-    if (!productNode) {
+    if(!productNode) {
       return { siblingProducts: [], siblingDetails: [], partialFailure: false, loadError: false };
     }
     const metafield = productNode?.metafield;
-    if (!metafield?.value) {
+    if(!metafield?.value) {
       return { siblingProducts: [], siblingDetails: [], partialFailure: false, loadError: false };
     }
     let siblingHandles = parseSiblingHandles(metafield.value);
@@ -558,25 +559,23 @@ async function loadSiblingsLazy(admin, handle){
   }
 }
 
-export async function action({ request }) {
+export async function action({ request }){
   let admin;
-  try {
+  try{
     ({ admin } = await authenticate.admin(request));
-  } catch {
+  }catch{
     return { success: false, message: ERROR_MESSAGES.E03 };
   }
   const formData = await request.formData();
   const id = formData.get("id");
   const handle = formData.get("handle");
   const tab = formData.get("_tab");
-  // Validate _tab value (E-06 requirement)
-  if (tab && !["basic", "siblings"].includes(tab)) {
+  if(tab && !["basic", "siblings"].includes(tab)) {
     return { success: false, message: ERROR_MESSAGES.E06 };
   }
-  if (!handle) return { success: false, message: ERROR_MESSAGES.E02 };
-  if (!id) return { success: false, message: ERROR_MESSAGES.E05 };
+  if(!handle) return { success: false, message: ERROR_MESSAGES.E02 };
+  if(!id) return { success: false, message: ERROR_MESSAGES.E05 };
 
-  // Extract Basic Info fields
   const title = formData.get("title")?.toString().trim() || "";
   if (!title || title.length < 3 || title.length > 200) {
     return { success: false, message: "Title must be between 3 and 200 characters." };
@@ -592,7 +591,7 @@ export async function action({ request }) {
   const tags = tagsRaw.split(",").map((t) => t.trim()).filter((t) => t.length > 0);
   const processedTags = processTags(tags);
   const currentSku = formData.get("sku")?.toString().trim() || "";
-  // Extract Original values
+  
   const originalTitle = formData.get("original_title")?.toString().trim() || "";
   const originalVendor = formData.get("original_vendor")?.toString().trim() || "";
   const originalProductType = formData.get("original_productType")?.toString().trim() || "";
@@ -602,12 +601,12 @@ export async function action({ request }) {
   const originalSku = formData.get("original_sku")?.toString().trim() || "";
 
   let originalTags = [];
-  try {
+  try{
     originalTags = originalTagsJson ? processTags(JSON.parse(originalTagsJson)) : [];
-  } catch {
+  }catch{
     originalTags = [];
   }
-  // Extract Siblings data
+  
   const siblingsWereLoaded = formData.get("siblingsWereLoaded") === "true";
   let originalSiblingProducts = [];
   let currentSiblingProducts = [];
@@ -634,12 +633,10 @@ export async function action({ request }) {
   };
   const changes = computeDiff(originalBasicInfo, currentBasicInfo, originalSku, currentSku, originalSiblingProducts, currentSiblingProducts);
 
-  // No-op when nothing changed
   if(!changes.coreFieldsChanged && !changes.skuChanged && !changes.siblingsChanged){
     return { success: true, message: "Product updated successfully", noOp: true };
   }
 
-  // Duplicate SKU check
   if(changes.skuChanged && currentSku){
     try{
       const skuCheckResponse = await admin.graphql(CHECK_SKU_UNIQUENESS_QUERY, {
@@ -655,7 +652,7 @@ export async function action({ request }) {
       console.error("SKU uniqueness check error:", error);
     }
   }
-  // Fire mutations
+  
   try{
     if(changes.coreFieldsChanged){
       const response = await admin.graphql(PRODUCT_UPDATE_MUTATION, {
@@ -687,7 +684,7 @@ export async function action({ request }) {
       }
     }
 
-    if(changes.siblingsChanged && siblingsWereLoaded) {
+    if(changes.siblingsChanged && siblingsWereLoaded){
       const metafieldValue = formatMetafieldValueForSave(currentSiblingProducts);
       const response = await admin.graphql(METAFIELDS_SET_MUTATION, {
         variables: {
@@ -708,7 +705,7 @@ export async function action({ request }) {
         return { success: false, message: ERROR_MESSAGES.E07 };
       }
     }
-    // Return saved values so the frontend can update the baseline
+    
     return { 
       success: true, 
       message: "Product updated successfully",
@@ -722,7 +719,7 @@ export async function action({ request }) {
       },
       savedSiblings: currentSiblingProducts
     };
-  } catch (error) {
+  }catch(error){
     console.error("Save error:", error);
     return { success: false, message: ERROR_MESSAGES.E07 };
   }
@@ -735,18 +732,18 @@ export default function ProductEditPage() {
   const isSubmitting = navigation.state === "submitting";
   const [activeTab, setActiveTab] = useState("basic");
   const [state, dispatch] = useReducer(formReducer, product, getInitialState);
-  const siblingFetcher = useFetcher();//creates a Remix fetcher for background requests
+  const siblingFetcher = useFetcher();
   const siblingsLoading = siblingFetcher.state === "loading";
   const [siblingsPartialFailure, setSiblingsPartialFailure] = useState(false);
   const [siblingsLoadError, setSiblingsLoadError] = useState(false);
-  const [showSuccessBanner, setShowSuccessBanner] = useState(false);//Controls visibility of a success banner.
+  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [showNoChangesBanner, setShowNoChangesBanner] = useState(false);
   const [showErrorBanner, setShowErrorBanner] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [newHandle, setNewHandle] = useState("");
   const lastActionRef = useRef(null);
-  // Handle action responses
+
   useEffect(() => {
     if(!actionData || actionData === lastActionRef.current) return;
     lastActionRef.current = actionData;
@@ -763,7 +760,6 @@ export default function ProductEditPage() {
     setShowSuccessBanner(true);
     setSuccessMessage(actionData.message || "Product updated successfully");
 
-    // Single dispatch for successful save and so that it prevents race conditions
     if(actionData.savedBasicInfo && actionData.savedSiblings){
       const updatedDetails = state.siblingDetails.filter(d => 
         actionData.savedSiblings.includes(d.handle)
@@ -782,10 +778,8 @@ export default function ProductEditPage() {
     return () => clearTimeout(timer);
   }, [actionData,state.siblingDetails]);
 
-  // Process siblings data from fetcher
-
   useEffect(() => {
-    if(siblingFetcher.state !== "idle" || !siblingFetcher.data) return;//When sibling is loading, the effect is stopped and then after loading the effects starts doing its work
+    if(siblingFetcher.state !== "idle" || !siblingFetcher.data) return;
     const data = siblingFetcher.data;
     if(data.loadError){
       setSiblingsLoadError(true);
@@ -890,13 +884,13 @@ export default function ProductEditPage() {
     const url = new URL(window.location.href);
     const pathParts = url.pathname.split('/');
     const productsIndex = pathParts.findIndex(part => part === 'products');
-    if (productsIndex !== -1) {
+    if(productsIndex !== -1){
       const basePathParts = pathParts.slice(0, productsIndex + 1);
       url.pathname = [...basePathParts, encodeURIComponent(handle), 'edit'].join('/');
       return url.toString();
     }
     console.error('Could not find products segment in path');
-    return '#';//Dummy url-Stay on same page 
+    return '#';
   };
   const handleSave = () => {
     if(!state.isDirty){
